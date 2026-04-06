@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LIVE STANDINGS</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: white; padding: 40px; }
+        h1 { text-align: center; color: #ffcc00; font-size: 3.5em; text-transform: uppercase; }
+        table { width: 85%; margin: 30px auto; border-collapse: collapse; background: #161616; border-radius: 10px; overflow: hidden; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        th, td { padding: 25px; text-align: center; font-size: 2em; border-bottom: 1px solid #222; }
+        th { background: #222; color: #569cd6; }
+        .rank-1 { color: #ffd700; font-weight: bold; background: rgba(255,215,0,0.05); }
+    </style>
+</head>
+<body>
+    <h1>🏆 Leaderboard</h1>
+    <table>
+        <thead><tr><th>Rank</th><th>Team</th><th>Score</th></tr></thead>
+        <tbody id="leaderboard-body"></tbody>
+    </table>
+    <script>
+        async function refresh() {
+            const r = await fetch('http://localhost:8000/api/leaderboard');
+            const data = await r.json();
+            const body = document.getElementById('leaderboard-body');
+            body.innerHTML = data.map((e, i) => `<tr><td class="${i===0?'rank-1':''}">${i+1}</td><td>Team ${e.team}</td><td style="color:#ffcc00; font-family:monospace;">${e.score}</td></tr>`).join('');
+        }
+        setInterval(refresh, 5000);
+        refresh();
+    </script>
+</body>
+</html>

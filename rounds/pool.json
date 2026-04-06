@@ -1,0 +1,76 @@
+{
+  "problems": [
+    {
+      "id": "01", "tier": "easy", "points": 100, "hint": "Use s[::-1] for reversal and s.replace(' ', '') to clean spaces.",
+      "p1_setup": { "title": "Reverse & Clean", "desc": "Reverse a sentence and remove all spaces. [cite: 3]" },
+      "p1_switch": { "title": "Case Flip", "partner_goal_recap": "Reversed string and removed spaces. [cite: 3]", "desc": "Swap the case of every character in the string. [cite: 3]" },
+      "p2_setup": { "title": "Vowel Stripper", "desc": "Remove all vowels from a paragraph. [cite: 3]" },
+      "p2_switch": { "title": "Length Check", "partner_goal_recap": "Removed all vowels. [cite: 3]", "desc": "Return 'Long' if length > 10, else 'Short'. [cite: 3]" },
+      "test_cases": { "Reverse & Clean": {"input": "Tech Fest 2026", "expected": "6202tseFhcT"}, "Case Flip": {"input": "6202tseFhcT", "expected": "6202TSEfHCt"}, "Vowel Stripper": {"input": "Relay Race", "expected": "Rly Rc"}, "Length Check": {"input": "Prgrmmng", "expected": "Short"} }
+    },
+    {
+      "id": "02", "tier": "easy", "points": 100, "hint": "N % i == 0 checks for divisors. [cite: 3]",
+      "p1_setup": { "title": "Divisor Finder", "desc": "Find all divisors of N and store in a comma-separated string. [cite: 3]" },
+      "p1_switch": { "title": "Parity Sum", "partner_goal_recap": "Found all divisors. [cite: 3]", "desc": "Sum only the even divisors from the string. [cite: 3]" },
+      "p2_setup": { "title": "Initialism", "desc": "Extract initials from a full name in Uppercase. [cite: 3]" },
+      "p2_switch": { "title": "ASCII Weight", "partner_goal_recap": "Extracted initials. [cite: 3]", "desc": "Return the sum of ASCII values of the initials. [cite: 3]" },
+      "test_cases": { "Divisor Finder": {"input": "12", "expected": "1,2,3,4,6,12"}, "Parity Sum": {"input": "1,2,3,4,6,12", "expected": "24"}, "Initialism": {"input": "Ada Lovelace", "expected": "AL"}, "ASCII Weight": {"input": "AL", "expected": "141"} }
+    },
+    {
+      "id": "05", "tier": "easy", "points": 100, "hint": "Use bin(n)[2:].zfill(8) for 8-bit binary strings. [cite: 3]",
+      "p1_setup": { "title": "Binary Conv", "desc": "Convert a decimal number to an 8-bit binary string. [cite: 3]" },
+      "p1_switch": { "title": "Bit Counter", "partner_goal_recap": "Converted decimal to 8-bit binary. [cite: 3]", "desc": "Count the number of 1s in that binary string. [cite: 3]" },
+      "p2_setup": { "title": "Digit Sum", "desc": "Find the sum of all digits in a given integer. [cite: 3]" },
+      "p2_switch": { "title": "Square It", "partner_goal_recap": "Summed the digits. [cite: 3]", "desc": "Return the square of that sum. [cite: 3]" },
+      "test_cases": { "Binary Conv": {"input": "10", "expected": "00001010"}, "Bit Counter": {"input": "00001010", "expected": "2"}, "Digit Sum": {"input": "1234", "expected": "10"}, "Square It": {"input": "10", "expected": "100"} }
+    },
+    {
+      "id": "11", "tier": "medium", "points": 200, "hint": "Use set() to find unique elements quickly. [cite: 6]",
+      "p1_setup": { "title": "Unique Extractor", "desc": "Return only unique numbers from a list. [cite: 6]" },
+      "p1_switch": { "title": "Stats Master", "partner_goal_recap": "Extracted unique list. [cite: 6]", "desc": "Find the average of those unique numbers. [cite: 6]" },
+      "p2_setup": { "title": "Threshold Filter", "desc": "Return temperatures from a list that are > 37.5. [cite: 6]" },
+      "p2_switch": { "title": "Average Fever", "partner_goal_recap": "Filtered high temps. [cite: 6]", "desc": "Calculate the mean of the filtered list. [cite: 6]" },
+      "test_cases": { "Unique Extractor": {"input": "1,2,2,3,4,4", "expected": "1,2,3,4"}, "Stats Master": {"input": "1,2,3,4", "expected": "2.5"}, "Threshold Filter": {"input": "37.0,38.0,39.0", "expected": "38.0,39.0"}, "Average Fever": {"input": "38.0,39.0", "expected": "38.5"} }
+    },
+    {
+      "id": "13", "tier": "medium", "points": 200, "hint": "Iterate through the string to count specific characters. [cite: 6]",
+      "p1_setup": { "title": "Odd-Even Split", "desc": "Join odds with '-' and evens with '*'. [cite: 6]" },
+      "p1_switch": { "title": "Separator Count", "partner_goal_recap": "Joined odds/evens. [cite: 6]", "desc": "Count the number of '-' in the string. [cite: 6]" },
+      "p2_setup": { "title": "Diagonal Sum", "desc": "Find the sum of the primary diagonal of a $3 \times 3$ matrix. [cite: 6]" },
+      "p2_switch": { "title": "Square Root", "partner_goal_recap": "Summed diagonal. [cite: 6]", "desc": "Return the square root of that sum (2 decimals). [cite: 6]" },
+      "test_cases": { "Odd-Even Split": {"input": "1,2,3,4,5,6", "expected": "1-3-5*2*4*6"}, "Separator Count": {"input": "1-3-5*2*4*6", "expected": "2"}, "Diagonal Sum": {"input": "2,0,0,0,2,0,0,0,2", "expected": "6"}, "Square Root": {"input": "16", "expected": "4.00"} }
+    },
+    {
+      "id": "21", "tier": "hard", "points": 250, "hint": "Euclidean Distance = $sqrt{x^2 + y^2}$. [cite: 9]",
+      "p1_setup": { "title": "The Navigator", "desc": "Calculate (x, y) from a direction string. [cite: 9]" },
+      "p1_switch": { "title": "Displacement", "partner_goal_recap": "Calculated (x, y). [cite: 9]", "desc": "Calculate Euclidean distance from (0,0). [cite: 9]" },
+      "p2_setup": { "title": "Hex Validator", "desc": "Validate a 6-char Hex code and return decimal sum. [cite: 9]" },
+      "p2_switch": { "title": "Perfect Square", "partner_goal_recap": "Validated Hex/Summed decimals. [cite: 9]", "desc": "Check if that sum is a perfect square. [cite: 9]" },
+      "test_cases": { "The Navigator": {"input": "NNEESS", "expected": "2,0"}, "Displacement": {"input": "3,4", "expected": "5.0"}, "Hex Validator": {"input": "#0000FF", "expected": "255"}, "Perfect Square": {"input": "64", "expected": "True"} }
+    },
+    {
+      "id": "26", "tier": "easy", "points": 100, "hint": "Vowels are 'a', 'e', 'i', 'o', 'u'. [cite: 12]",
+      "p1_setup": { "title": "Vowel Counter", "desc": "Count the total number of vowels in a word. [cite: 12]" },
+      "p1_switch": { "title": "Double Up", "partner_goal_recap": "Counted vowels. [cite: 12]", "desc": "Multiply that count by 2 and return the result. [cite: 12]" },
+      "p2_setup": { "title": "Greeting Maker", "desc": "Take a name and return 'Hello [Name]'. [cite: 12]" },
+      "p2_switch": { "title": "Char Count", "partner_goal_recap": "Generated greeting. [cite: 12]", "desc": "Return the total number of characters in that greeting. [cite: 12]" },
+      "test_cases": { "Vowel Counter": {"input": "Computer", "expected": "3"}, "Double Up": {"input": "3", "expected": "6"}, "Greeting Maker": {"input": "Dattu", "expected": "Hello Dattu"}, "Char Count": {"input": "Hello Dattu", "expected": "11"} }
+    },
+    {
+      "id": "31", "tier": "easy", "points": 100, "hint": "Use N % 10 to get the rightmost digit. [cite: 12]",
+      "p1_setup": { "title": "Last Digit", "desc": "Find the last digit of a given number N. [cite: 12]" },
+      "p1_switch": { "title": "Parity Check", "partner_goal_recap": "Found last digit. [cite: 12]", "desc": "Return 'Even' if the digit is even, else 'Odd'. [cite: 12]" },
+      "p2_setup": { "title": "Word Reverser", "desc": "Reverse a single word (e.g., 'Apple' -> 'elppA'). [cite: 12]" },
+      "p2_switch": { "title": "Start Search", "partner_goal_recap": "Reversed word. [cite: 12]", "desc": "Check if the reversed word starts with 'e'. [cite: 12]" },
+      "test_cases": { "Last Digit": {"input": "1024", "expected": "4"}, "Parity Check": {"input": "4", "expected": "Even"}, "Word Reverser": {"input": "Orange", "expected": "egnaroO"}, "Start Search": {"input": "egnaroO", "expected": "True"} }
+    },
+    {
+      "id": "39", "tier": "easy", "points": 100, "hint": "Convert to string or divide by 100 to get the first digits. [cite: 12]",
+      "p1_setup": { "title": "Century Check", "desc": "Take a year and return the first two digits. [cite: 12]" },
+      "p1_switch": { "title": "Math Logic", "partner_goal_recap": "Extracted year prefix. [cite: 12]", "desc": "Multiply those two digits by 10. [cite: 12]" },
+      "p2_setup": { "title": "Secret Code", "desc": "Replace 's' with '$' in any given word. [cite: 12]" },
+      "p2_switch": { "title": "ASCII Value", "partner_goal_recap": "Replaced 's' with '$'. [cite: 12]", "desc": "Find the ASCII value of the second character. [cite: 12]" },
+      "test_cases": { "Century Check": {"input": "2024", "expected": "20"}, "Math Logic": {"input": "20", "expected": "200"}, "Secret Code": {"input": "sunny", "expected": "$unny"}, "ASCII Value": {"input": "$unny", "expected": "117"} }
+    }
+  ]
+}

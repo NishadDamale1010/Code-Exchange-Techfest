@@ -1,0 +1,10 @@
+# Database
+leaderboard.db
+
+# Python
+__pycache__/
+*.py[cod]
+
+# C++ Executables
+*.exe
+temp_*.cpp
