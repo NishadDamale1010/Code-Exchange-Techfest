@@ -14,6 +14,7 @@
         #status-overlay, #waiting-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
         .part-badge { background: #ce9178; color: black; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
         .btn { padding: 5px 15px; cursor: pointer; border: none; font-weight: bold; margin-left: 5px; border-radius: 4px; }
+        .hint { color: #ffcc00; font-size: 0.9rem; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -32,49 +33,85 @@
         </div>
     </div>
     <div id="main-layout">
-        <div id="problem-container"><span class="part-badge" id="current-part">PART A</span><h2 id="problem-title">Loading...</h2><div id="problem-desc">...</div></div>
+        <div id="problem-container"><span class="part-badge" id="current-part">PART A</span><h2 id="problem-title">Loading...</h2><div id="problem-desc">...</div><p class="hint">Tip: drafts auto-save every 10 seconds.</p></div>
         <div id="editor-side"><div id="editor-container"></div><div id="console"></div></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <script>
         let editor;
-        const team = prompt("Team ID", "1"), player = prompt("Player (p1/p2)", "p1"), api = "http://localhost:8000";
+        const isFileProtocol = window.location.protocol === 'file:';
+        const api = isFileProtocol ? "http://localhost:8000" : window.location.origin;
+        const wsScheme = api.startsWith('https') ? 'wss' : 'ws';
+
+        const team = prompt("Team ID", "1");
+        const player = prompt("Player (p1/p2)", "p1");
         document.getElementById('player-info').innerText = `TEAM ${team} | ${player.toUpperCase()}`;
 
         function printToConsole(msg, type='info') {
             const c = document.getElementById('console');
-            const color = type==='success'?'#0f0':(type==='error'?'#f44':'#fff');
+            const color = type === 'success' ? '#0f0' : (type === 'error' ? '#f44' : '#fff');
             c.innerHTML += `<div class="console-msg">> <span style="color:${color}">${msg}</span></div>`;
             c.scrollTop = c.scrollHeight;
         }
 
-        async function loadProblem() {
+        async function requestJson(url, options = {}) {
             try {
-                const p = await fetch(`${api}/api/problem/current/${team}/${player}`);
-                const data = await p.json();
-                if(data.title) {
-                    document.getElementById('problem-title').innerText = data.title;
-                    document.getElementById('problem-desc').innerHTML = data.desc;
+                const res = await fetch(url, options);
+                const data = await res.json();
+                if(!res.ok) {
+                    throw new Error(data.detail || data.message || 'Request failed');
                 }
-            } catch(e) {}
+                return data;
+            } catch (error) {
+                printToConsole(error.message, 'error');
+                throw error;
+            }
+        }
+
+        async function loadProblem() {
+            const data = await requestJson(`${api}/api/problem/current/${team}/${player}`);
+            document.getElementById('problem-title').innerText = data.title || 'Waiting...';
+            document.getElementById('problem-desc').innerHTML = data.desc || 'Wait for Admin.';
+        }
+
+        async function loadDraft() {
+            const draft = await requestJson(`${api}/api/get-draft/${team}/${player}`);
+            if(draft.code) editor.setValue(draft.code);
+            if(draft.language) {
+                document.getElementById('lang-select').value = draft.language;
+                monaco.editor.setModelLanguage(editor.getModel(), draft.language);
+            }
+            printToConsole('Draft restored successfully.', 'success');
         }
 
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
-        require(['vs/editor/editor.main'], function() {
-            editor = monaco.editor.create(document.getElementById('editor-container'), { value: "# Start\n", language: 'python', theme: 'vs-dark', automaticLayout: true });
-            loadProblem();
+        require(['vs/editor/editor.main'], async function() {
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: "# Start\n",
+                language: 'python',
+                theme: 'vs-dark',
+                automaticLayout: true
+            });
+            await loadProblem();
+            await loadDraft();
         });
 
-        const socket = new WebSocket(`ws://localhost:8000/ws/${team}/${player}`);
-        socket.onmessage = (e) => {
+        const socket = new WebSocket(`${wsScheme}://${new URL(api).host}/ws/${team}/${player}`);
+        socket.onopen = () => printToConsole('Realtime connection established.', 'success');
+        socket.onerror = () => printToConsole('Realtime connection error.', 'error');
+
+        socket.onmessage = async (e) => {
             const d = JSON.parse(e.data);
             if(d.type === "TIME_UPDATE") document.getElementById('timer').innerText = `T-MINUS: ${d.seconds}s`;
-            if(d.type === "NEW_ASSIGNMENT") { printToConsole("Assignment Updated!", "success"); loadProblem(); }
+            if(d.type === "NEW_ASSIGNMENT") { printToConsole("Assignment updated!", "success"); await loadProblem(); }
             if(d.type === "STOP_TIMER") document.getElementById('timer').innerText = `T-MINUS: --s`;
             if(d.type === "PHASE_END") handlePhaseEnd();
             if(d.type === "INCOMING_CODE") applySwap(d.code);
-            if(d.type === "LOCK_LANG") { document.getElementById('lang-select').value = d.lang; monaco.editor.setModelLanguage(editor.getModel(), d.lang); }
+            if(d.type === "LOCK_LANG") {
+                document.getElementById('lang-select').value = d.lang;
+                monaco.editor.setModelLanguage(editor.getModel(), d.lang);
+            }
         };
 
         function handlePhaseEnd() {
@@ -87,11 +124,9 @@
         async function applySwap(newCode) {
             document.getElementById('status-overlay').style.display = 'none';
             document.getElementById('current-part').innerText = "PART B";
-            const s = await fetch(`${api}/api/problem/switch/${team}/${player}`);
-            const data = await s.json();
-            
+            const data = await requestJson(`${api}/api/problem/switch/${team}/${player}`);
+
             document.getElementById('problem-title').innerText = data.title;
-            
             document.getElementById('problem-desc').innerHTML = `
                 <div style="border: 1px solid #444; padding: 10px; margin-bottom: 15px; background: #2d2d2d; border-radius: 5px;">
                     <h4 style="margin-top:0; color:#ce9178;">Phase A Context: ${data.part_a_title}</h4>
@@ -102,40 +137,70 @@
                 <h4 style="color:#28a745;">Your Task (Phase B)</h4>
                 <p>${data.desc}</p>
             `;
-            
-            editor.setValue(newCode + "\n\n# --- PART B START ---\n");
+
+            editor.setValue((newCode || "") + "\n\n# --- PART B START ---\n");
             editor.updateOptions({ readOnly: false });
         }
 
         async function runCode() {
-            const r = await fetch(`${api}/run/${team}/${player}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code: editor.getValue(), problem_title: document.getElementById('problem-title').innerText, language: document.getElementById('lang-select').value })});
-            const res = await r.json(); printToConsole(res.message, res.status === "Success" ? "success" : "error");
+            const res = await requestJson(`${api}/run/${team}/${player}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    code: editor.getValue(),
+                    problem_title: document.getElementById('problem-title').innerText,
+                    language: document.getElementById('lang-select').value
+                })
+            });
+            printToConsole(res.message, res.status === "Success" ? "success" : "error");
         }
 
         async function submitCode() {
-            const r = await fetch(`${api}/submit/${team}/${player}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code: editor.getValue(), problem_title: document.getElementById('problem-title').innerText, language: document.getElementById('lang-select').value })});
-            const res = await r.json(); 
+            const res = await requestJson(`${api}/submit/${team}/${player}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    code: editor.getValue(),
+                    problem_title: document.getElementById('problem-title').innerText,
+                    language: document.getElementById('lang-select').value
+                })
+            });
             if(res.status === "Success") {
                 printToConsole(res.message, "success");
-                if(document.getElementById('current-part').innerText === "PART A") document.getElementById('waiting-overlay').style.display = 'flex';
-            } else printToConsole(res.message, "error");
+                if(document.getElementById('current-part').innerText === "PART A") {
+                    document.getElementById('waiting-overlay').style.display = 'flex';
+                }
+            } else {
+                printToConsole(res.message, "error");
+            }
         }
 
         async function requestHint() {
             if(confirm("Use Hint? (-20 pts penalty)")) {
-                await fetch(`${api}/api/admin/penalty/${team}`, {method:'POST'});
-                const p = await fetch(`${api}/api/problem/current/${team}/${player}`);
-                const data = await p.json(); alert("HINT: " + (data.hint || "No hint for this one!"));
+                const data = await requestJson(`${api}/api/hint/${team}/${player}`, { method:'POST' });
+                alert("HINT: " + (data.hint || "No hint for this one!"));
             }
         }
 
-        function changeLanguage() { 
+        function changeLanguage() {
             const l = document.getElementById('lang-select').value;
             monaco.editor.setModelLanguage(editor.getModel(), l);
-            socket.send(JSON.stringify({ type: "LANG_CHANGE", lang: l }));
+            if (socket.readyState === 1) socket.send(JSON.stringify({ type: "LANG_CHANGE", lang: l }));
         }
-        setInterval(() => { if(socket.readyState === 1) socket.send(JSON.stringify({type: "HEARTBEAT"})); }, 20000);
-        setInterval(() => { if(editor) fetch(`${api}/api/save-draft/${team}/${player}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code: editor.getValue(), language: document.getElementById('lang-select').value })}); }, 10000);
+
+        setInterval(() => {
+            if(socket.readyState === 1) socket.send(JSON.stringify({type: "HEARTBEAT"}));
+        }, 20000);
+
+        setInterval(() => {
+            if(editor) {
+                fetch(`${api}/api/save-draft/${team}/${player}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ code: editor.getValue(), language: document.getElementById('lang-select').value })
+                });
+            }
+        }, 10000);
     </script>
 </body>
 </html>
