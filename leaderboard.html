@@ -4,25 +4,40 @@
     <title>LIVE STANDINGS</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #0a0a0a; color: white; padding: 40px; }
-        h1 { text-align: center; color: #ffcc00; font-size: 3.5em; text-transform: uppercase; }
+        h1 { text-align: center; color: #ffcc00; font-size: 3.5em; text-transform: uppercase; margin-bottom: 10px; }
+        #stamp { text-align: center; opacity: 0.8; margin-bottom: 20px; }
         table { width: 85%; margin: 30px auto; border-collapse: collapse; background: #161616; border-radius: 10px; overflow: hidden; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
         th, td { padding: 25px; text-align: center; font-size: 2em; border-bottom: 1px solid #222; }
         th { background: #222; color: #569cd6; }
         .rank-1 { color: #ffd700; font-weight: bold; background: rgba(255,215,0,0.05); }
+        .rank-2 { color: #c0c0c0; font-weight: bold; }
+        .rank-3 { color: #cd7f32; font-weight: bold; }
     </style>
 </head>
 <body>
     <h1>🏆 Leaderboard</h1>
+    <div id="stamp">Loading...</div>
     <table>
         <thead><tr><th>Rank</th><th>Team</th><th>Score</th></tr></thead>
         <tbody id="leaderboard-body"></tbody>
     </table>
     <script>
+        const isFileProtocol = window.location.protocol === 'file:';
+        const api = isFileProtocol ? "http://localhost:8000" : window.location.origin;
+
         async function refresh() {
-            const r = await fetch('http://localhost:8000/api/leaderboard');
-            const data = await r.json();
-            const body = document.getElementById('leaderboard-body');
-            body.innerHTML = data.map((e, i) => `<tr><td class="${i===0?'rank-1':''}">${i+1}</td><td>Team ${e.team}</td><td style="color:#ffcc00; font-family:monospace;">${e.score}</td></tr>`).join('');
+            try {
+                const r = await fetch(`${api}/api/leaderboard`);
+                const data = await r.json();
+                const body = document.getElementById('leaderboard-body');
+                body.innerHTML = data.map((e, i) => {
+                    const rankClass = i === 0 ? 'rank-1' : (i === 1 ? 'rank-2' : (i === 2 ? 'rank-3' : ''));
+                    return `<tr><td class="${rankClass}">${i+1}</td><td>Team ${e.team}</td><td style="color:#ffcc00; font-family:monospace;">${e.score}</td></tr>`;
+                }).join('');
+                document.getElementById('stamp').innerText = `Updated: ${new Date().toLocaleTimeString()}`;
+            } catch (error) {
+                document.getElementById('stamp').innerText = `Update failed: ${error.message}`;
+            }
         }
         setInterval(refresh, 5000);
         refresh();
