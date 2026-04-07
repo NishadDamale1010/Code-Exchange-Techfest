@@ -3,139 +3,411 @@
 <head>
     <title>Exchange the Code - IDE</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #1e1e1e; color: white; overflow: hidden; }
-        #controls { padding: 10px 20px; background: #2d2d2d; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; height: 50px; }
-        #main-layout { display: flex; height: calc(100vh - 50px); }
-        #problem-container { width: 35%; padding: 20px; background: #252526; border-right: 1px solid #444; overflow-y: auto; }
-        #editor-side { width: 65%; display: flex; flex-direction: column; }
-        #editor-container { flex-grow: 1; }
-        #console { height: 150px; background: #000; color: #0f0; font-family: 'Consolas', monospace; padding: 10px; border-top: 2px solid #444; overflow-y: auto; }
-        .console-msg { margin-bottom: 5px; }
-        #status-overlay, #waiting-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
-        .part-badge { background: #ce9178; color: black; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
-        .btn { padding: 5px 15px; cursor: pointer; border: none; font-weight: bold; margin-left: 5px; border-radius: 4px; }
+        :root {
+            --bg: #131417;
+            --panel: #1e1f24;
+            --panel-soft: #252730;
+            --text: #e8ecf1;
+            --muted: #a6b0c2;
+            --accent: #00c2ff;
+            --warn: #ffcc00;
+            --success: #2ecc71;
+            --danger: #ff5c5c;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at top right, #1f2433 0%, var(--bg) 45%);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            display: grid;
+            grid-template-rows: 64px 1fr;
+            height: 100vh;
+        }
+
+        #topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            background: rgba(15, 16, 21, 0.9);
+            border-bottom: 1px solid #2b2f3a;
+        }
+
+        .brand { display: flex; gap: 10px; align-items: center; }
+        .badge {
+            background: #2c3140;
+            border: 1px solid #3a4153;
+            color: #d6def0;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 0.82rem;
+        }
+
+        .badge.live { border-color: #2a6f45; color: #9ff1c1; background: rgba(46, 204, 113, 0.15); }
+        .badge.offline { border-color: #7b3030; color: #ffb1b1; background: rgba(255, 92, 92, 0.12); }
+
+        .actions { display: flex; gap: 8px; align-items: center; }
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-run { background: var(--accent); color: #001521; }
+        .btn-submit { background: var(--success); color: #04170b; }
+        .btn-hint { background: var(--warn); color: #2b2100; }
+
+        #layout {
+            display: grid;
+            grid-template-columns: minmax(320px, 36%) 1fr;
+            height: 100%;
+        }
+
+        #left {
+            border-right: 1px solid #2b2f3a;
+            background: linear-gradient(180deg, #1a1c24 0%, #14161c 100%);
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid #2c3140;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+        #problem-title { margin: 8px 0 10px; }
+        #problem-desc { color: #d9dfeb; line-height: 1.5; }
+        #hint-preview { color: #f3d36b; margin-top: 10px; font-size: .92rem; }
+
+        #right { display: grid; grid-template-rows: 1fr 170px; }
+        #editor-container { min-height: 0; }
+
+        #console {
+            background: #090a0d;
+            border-top: 1px solid #2b2f3a;
+            font-family: 'Consolas', monospace;
+            padding: 12px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+        }
+
+        .console-msg { margin-bottom: 6px; }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+
+        select {
+            background: #262a36;
+            color: #dce4f3;
+            border: 1px solid #374055;
+            border-radius: 8px;
+            padding: 7px;
+        }
     </style>
 </head>
 <body>
-    <div id="status-overlay"><h1>SWAPPING CONTEXT...</h1><p>Linking logic with partner.</p></div>
-    <div id="waiting-overlay"><h1>PART A COMPLETE!</h1><p>Waiting for partner to finish...</p></div>
-    <div id="controls">
-        <span id="player-info">Connecting...</span>
-        <span id="timer" style="color:#ffcc00; font-family:monospace; font-weight:bold;">T-MINUS: --s</span>
-        <div>
-            <select id="lang-select" onchange="changeLanguage()" style="background:#333; color:white; padding:5px;">
-                <option value="python">Python</option><option value="cpp">C++</option>
+<div id="status-overlay" class="overlay">
+    <h1>🔄 Swapping Context</h1>
+    <p>Linking your partner’s code to your phase-B challenge...</p>
+</div>
+<div id="waiting-overlay" class="overlay">
+    <h1>✅ Part A Submitted</h1>
+    <p>Waiting for your partner to finish...</p>
+</div>
+
+<div id="app">
+    <div id="topbar">
+        <div class="brand">
+            <strong>Exchange the Code</strong>
+            <span class="badge" id="player-info">TEAM ? | ?</span>
+            <span class="badge" id="timer">T-MINUS: --s</span>
+            <span class="badge offline" id="socket-state">Disconnected</span>
+        </div>
+        <div class="actions">
+            <select id="lang-select" onchange="changeLanguage()">
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
             </select>
-            <button class="btn" onclick="requestHint()" style="background:#ffcc00; color:black;">HINT (-20)</button>
-            <button class="btn" onclick="runCode()" style="background:#007acc; color:white;">RUN</button>
-            <button class="btn" onclick="submitCode()" style="background:#28a745; color:white;">SUBMIT</button>
+            <button id="hint-btn" class="btn btn-hint" onclick="requestHint()">HINT (-20)</button>
+            <button id="run-btn" class="btn btn-run" onclick="runCode()">RUN</button>
+            <button id="submit-btn" class="btn btn-submit" onclick="submitCode()">SUBMIT</button>
         </div>
     </div>
-    <div id="main-layout">
-        <div id="problem-container"><span class="part-badge" id="current-part">PART A</span><h2 id="problem-title">Loading...</h2><div id="problem-desc">...</div></div>
-        <div id="editor-side"><div id="editor-container"></div><div id="console"></div></div>
+
+    <div id="layout">
+        <section id="left">
+            <div class="card">
+                <div class="label">Current Phase</div>
+                <h3 id="current-part" style="margin:8px 0 0;">PART A</h3>
+            </div>
+            <div class="card">
+                <div class="label">Problem</div>
+                <h2 id="problem-title">Loading...</h2>
+                <div id="problem-desc">Please wait while we fetch your assignment.</div>
+                <div id="hint-preview"></div>
+            </div>
+            <div class="card">
+                <div class="label">Session Tips</div>
+                <ul style="margin:8px 0 0 18px; color:var(--muted); line-height:1.5;">
+                    <li>Drafts auto-save every 10s.</li>
+                    <li>Use RUN to verify output before SUBMIT.</li>
+                    <li>Language is synced across both teammates.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="right">
+            <div id="editor-container"></div>
+            <div id="console"></div>
+        </section>
     </div>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
-    <script>
-        let editor;
-        const team = prompt("Team ID", "1"), player = prompt("Player (p1/p2)", "p1"), api = "http://localhost:8000";
-        document.getElementById('player-info').innerText = `TEAM ${team} | ${player.toUpperCase()}`;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+<script>
+    let editor;
+    const isFileProtocol = window.location.protocol === 'file:';
+    const api = isFileProtocol ? 'http://localhost:8000' : window.location.origin;
+    const wsScheme = api.startsWith('https') ? 'wss' : 'ws';
+    const team = (prompt('Team ID', '1') || '1').trim();
+    const playerInput = (prompt('Player (p1/p2)', 'p1') || 'p1').trim().toLowerCase();
+    const player = ['p1', 'p2'].includes(playerInput) ? playerInput : 'p1';
 
-        function printToConsole(msg, type='info') {
-            const c = document.getElementById('console');
-            const color = type==='success'?'#0f0':(type==='error'?'#f44':'#fff');
-            c.innerHTML += `<div class="console-msg">> <span style="color:${color}">${msg}</span></div>`;
-            c.scrollTop = c.scrollHeight;
+    const socketStateEl = document.getElementById('socket-state');
+    const runBtn = document.getElementById('run-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const hintBtn = document.getElementById('hint-btn');
+
+    document.getElementById('player-info').innerText = `TEAM ${team} | ${player.toUpperCase()}`;
+
+    function printToConsole(msg, type = 'info') {
+        const c = document.getElementById('console');
+        const color = type === 'success' ? '#70ff99' : (type === 'error' ? '#ff8484' : '#dce4f3');
+        c.innerHTML += `<div class="console-msg">> <span style="color:${color}">${msg}</span></div>`;
+        c.scrollTop = c.scrollHeight;
+    }
+
+    function setBusy(isBusy) {
+        runBtn.disabled = isBusy;
+        submitBtn.disabled = isBusy;
+        hintBtn.disabled = isBusy;
+    }
+
+    function updateSocketBadge(connected) {
+        socketStateEl.innerText = connected ? 'Realtime Connected' : 'Disconnected';
+        socketStateEl.classList.toggle('live', connected);
+        socketStateEl.classList.toggle('offline', !connected);
+    }
+
+    async function requestJson(url, options = {}) {
+        const res = await fetch(url, options);
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || data.message || 'Request failed');
         }
+        return data;
+    }
 
-        async function loadProblem() {
-            try {
-                const p = await fetch(`${api}/api/problem/current/${team}/${player}`);
-                const data = await p.json();
-                if(data.title) {
-                    document.getElementById('problem-title').innerText = data.title;
-                    document.getElementById('problem-desc').innerHTML = data.desc;
-                }
-            } catch(e) {}
+    async function loadProblem() {
+        const data = await requestJson(`${api}/api/problem/current/${team}/${player}`);
+        document.getElementById('problem-title').innerText = data.title || 'Waiting...';
+        document.getElementById('problem-desc').innerHTML = data.desc || 'Wait for Admin.';
+    }
+
+    async function loadDraft() {
+        const draft = await requestJson(`${api}/api/get-draft/${team}/${player}`);
+        if (draft.code) editor.setValue(draft.code);
+        if (draft.language) {
+            document.getElementById('lang-select').value = draft.language;
+            monaco.editor.setModelLanguage(editor.getModel(), draft.language);
         }
+        printToConsole(draft.code ? 'Draft restored.' : 'No existing draft found.', 'success');
+    }
 
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
-        require(['vs/editor/editor.main'], function() {
-            editor = monaco.editor.create(document.getElementById('editor-container'), { value: "# Start\n", language: 'python', theme: 'vs-dark', automaticLayout: true });
-            loadProblem();
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+    require(['vs/editor/editor.main'], async function() {
+        editor = monaco.editor.create(document.getElementById('editor-container'), {
+            value: '# Start coding here\n',
+            language: 'python',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: { enabled: false }
         });
 
-        const socket = new WebSocket(`ws://localhost:8000/ws/${team}/${player}`);
-        socket.onmessage = (e) => {
-            const d = JSON.parse(e.data);
-            if(d.type === "TIME_UPDATE") document.getElementById('timer').innerText = `T-MINUS: ${d.seconds}s`;
-            if(d.type === "NEW_ASSIGNMENT") { printToConsole("Assignment Updated!", "success"); loadProblem(); }
-            if(d.type === "STOP_TIMER") document.getElementById('timer').innerText = `T-MINUS: --s`;
-            if(d.type === "PHASE_END") handlePhaseEnd();
-            if(d.type === "INCOMING_CODE") applySwap(d.code);
-            if(d.type === "LOCK_LANG") { document.getElementById('lang-select').value = d.lang; monaco.editor.setModelLanguage(editor.getModel(), d.lang); }
-        };
-
-        function handlePhaseEnd() {
-            document.getElementById('waiting-overlay').style.display = 'none';
-            document.getElementById('status-overlay').style.display = 'flex';
-            editor.updateOptions({ readOnly: true });
-            socket.send(JSON.stringify({ type: "SWAP", code: editor.getValue() }));
+        try {
+            await loadProblem();
+            await loadDraft();
+        } catch (error) {
+            printToConsole(error.message, 'error');
         }
+    });
 
-        async function applySwap(newCode) {
-            document.getElementById('status-overlay').style.display = 'none';
-            document.getElementById('current-part').innerText = "PART B";
-            const s = await fetch(`${api}/api/problem/switch/${team}/${player}`);
-            const data = await s.json();
-            
-            document.getElementById('problem-title').innerText = data.title;
-            
-            document.getElementById('problem-desc').innerHTML = `
-                <div style="border: 1px solid #444; padding: 10px; margin-bottom: 15px; background: #2d2d2d; border-radius: 5px;">
-                    <h4 style="margin-top:0; color:#ce9178;">Phase A Context: ${data.part_a_title}</h4>
-                    <p style="font-size: 0.9em; opacity: 0.8;">${data.part_a_desc}</p>
-                    <hr style="border: 0; border-top: 1px solid #444;">
-                    <strong>Partner's Goal:</strong> ${data.partner_goal_recap}
-                </div>
-                <h4 style="color:#28a745;">Your Task (Phase B)</h4>
-                <p>${data.desc}</p>
-            `;
-            
-            editor.setValue(newCode + "\n\n# --- PART B START ---\n");
-            editor.updateOptions({ readOnly: false });
+    const socket = new WebSocket(`${wsScheme}://${new URL(api).host}/ws/${team}/${player}`);
+
+    socket.onopen = () => {
+        updateSocketBadge(true);
+        printToConsole('Realtime connection established.', 'success');
+    };
+
+    socket.onclose = () => {
+        updateSocketBadge(false);
+        printToConsole('Realtime disconnected.', 'error');
+    };
+
+    socket.onerror = () => {
+        updateSocketBadge(false);
+        printToConsole('Realtime connection error.', 'error');
+    };
+
+    socket.onmessage = async (e) => {
+        const d = JSON.parse(e.data);
+        if (d.type === 'TIME_UPDATE') document.getElementById('timer').innerText = `T-MINUS: ${d.seconds}s`;
+        if (d.type === 'NEW_ASSIGNMENT') {
+            printToConsole('Assignment updated!', 'success');
+            await loadProblem();
         }
-
-        async function runCode() {
-            const r = await fetch(`${api}/run/${team}/${player}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code: editor.getValue(), problem_title: document.getElementById('problem-title').innerText, language: document.getElementById('lang-select').value })});
-            const res = await r.json(); printToConsole(res.message, res.status === "Success" ? "success" : "error");
+        if (d.type === 'STOP_TIMER') document.getElementById('timer').innerText = 'T-MINUS: --s';
+        if (d.type === 'PHASE_END') handlePhaseEnd();
+        if (d.type === 'INCOMING_CODE') applySwap(d.code);
+        if (d.type === 'LOCK_LANG') {
+            document.getElementById('lang-select').value = d.lang;
+            monaco.editor.setModelLanguage(editor.getModel(), d.lang);
         }
+    };
 
-        async function submitCode() {
-            const r = await fetch(`${api}/submit/${team}/${player}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code: editor.getValue(), problem_title: document.getElementById('problem-title').innerText, language: document.getElementById('lang-select').value })});
-            const res = await r.json(); 
-            if(res.status === "Success") {
-                printToConsole(res.message, "success");
-                if(document.getElementById('current-part').innerText === "PART A") document.getElementById('waiting-overlay').style.display = 'flex';
-            } else printToConsole(res.message, "error");
+    function handlePhaseEnd() {
+        document.getElementById('waiting-overlay').style.display = 'none';
+        document.getElementById('status-overlay').style.display = 'flex';
+        editor.updateOptions({ readOnly: true });
+        if (socket.readyState === 1) socket.send(JSON.stringify({ type: 'SWAP', code: editor.getValue() }));
+    }
+
+    async function applySwap(newCode) {
+        document.getElementById('status-overlay').style.display = 'none';
+        document.getElementById('current-part').innerText = 'PART B';
+        const data = await requestJson(`${api}/api/problem/switch/${team}/${player}`);
+
+        document.getElementById('problem-title').innerText = data.title;
+        document.getElementById('problem-desc').innerHTML = `
+            <div style="border:1px solid #39405a;padding:10px;border-radius:8px;background:#1f2330;margin-bottom:12px;">
+                <h4 style="margin:0 0 8px;color:#f0b26b;">Phase A Context: ${data.part_a_title}</h4>
+                <p style="margin:0 0 8px;opacity:0.85;">${data.part_a_desc}</p>
+                <hr style="border:0;border-top:1px solid #384059;">
+                <strong>Partner Goal:</strong> ${data.partner_goal_recap || 'N/A'}
+            </div>
+            <h4 style="margin-bottom:6px;color:#7be4a0;">Your Task (Phase B)</h4>
+            <p>${data.desc}</p>
+        `;
+
+        editor.setValue((newCode || '') + '\n\n# --- PART B START ---\n');
+        editor.updateOptions({ readOnly: false });
+        printToConsole('Code swap completed.', 'success');
+    }
+
+    async function runCode() {
+        try {
+            setBusy(true);
+            const res = await requestJson(`${api}/run/${team}/${player}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: editor.getValue(),
+                    problem_title: document.getElementById('problem-title').innerText,
+                    language: document.getElementById('lang-select').value
+                })
+            });
+            printToConsole(res.message, res.status === 'Success' ? 'success' : 'error');
+        } catch (error) {
+            printToConsole(error.message, 'error');
+        } finally {
+            setBusy(false);
         }
+    }
 
-        async function requestHint() {
-            if(confirm("Use Hint? (-20 pts penalty)")) {
-                await fetch(`${api}/api/admin/penalty/${team}`, {method:'POST'});
-                const p = await fetch(`${api}/api/problem/current/${team}/${player}`);
-                const data = await p.json(); alert("HINT: " + (data.hint || "No hint for this one!"));
+    async function submitCode() {
+        try {
+            setBusy(true);
+            const res = await requestJson(`${api}/submit/${team}/${player}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code: editor.getValue(),
+                    problem_title: document.getElementById('problem-title').innerText,
+                    language: document.getElementById('lang-select').value
+                })
+            });
+
+            if (res.status === 'Success') {
+                printToConsole(res.message, 'success');
+                if (document.getElementById('current-part').innerText === 'PART A') {
+                    document.getElementById('waiting-overlay').style.display = 'flex';
+                }
+            } else {
+                printToConsole(res.message, 'error');
             }
+        } catch (error) {
+            printToConsole(error.message, 'error');
+        } finally {
+            setBusy(false);
         }
+    }
 
-        function changeLanguage() { 
-            const l = document.getElementById('lang-select').value;
-            monaco.editor.setModelLanguage(editor.getModel(), l);
-            socket.send(JSON.stringify({ type: "LANG_CHANGE", lang: l }));
+    async function requestHint() {
+        if (!confirm('Use Hint? (-20 pts penalty)')) return;
+        try {
+            setBusy(true);
+            const data = await requestJson(`${api}/api/hint/${team}/${player}`, { method: 'POST' });
+            document.getElementById('hint-preview').innerText = `Hint: ${data.hint || 'No hint for this one.'}`;
+            printToConsole('Hint requested successfully.', 'success');
+        } catch (error) {
+            printToConsole(error.message, 'error');
+        } finally {
+            setBusy(false);
         }
-        setInterval(() => { if(socket.readyState === 1) socket.send(JSON.stringify({type: "HEARTBEAT"})); }, 20000);
-        setInterval(() => { if(editor) fetch(`${api}/api/save-draft/${team}/${player}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code: editor.getValue(), language: document.getElementById('lang-select').value })}); }, 10000);
-    </script>
+    }
+
+    function changeLanguage() {
+        const l = document.getElementById('lang-select').value;
+        monaco.editor.setModelLanguage(editor.getModel(), l);
+        if (socket.readyState === 1) socket.send(JSON.stringify({ type: 'LANG_CHANGE', lang: l }));
+    }
+
+    setInterval(() => {
+        if (socket.readyState === 1) socket.send(JSON.stringify({ type: 'HEARTBEAT' }));
+    }, 20000);
+
+    setInterval(() => {
+        if (!editor) return;
+        fetch(`${api}/api/save-draft/${team}/${player}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: editor.getValue(), language: document.getElementById('lang-select').value })
+        });
+    }, 10000);
+</script>
 </body>
 </html>
